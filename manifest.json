@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0071dc">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192x192.png">
+<link rel="apple-touch-icon" href="icons/icon-192x192.png">
+<title>Grocery Check</title>
+
+<style>
+/* ---------- ROOT + GLOBAL ---------- */
+:root{
+  --blue:#0071dc;
+  --yellow:#ffc220;
+  --bg:#f5f5f5;
+  --card:#ffffff;
+  --muted:#767676;
+  --green:#16a34a;
+  --radius:8px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+body{
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);
+  color:#111827;
+}
+
+/* ---------- STICKY WRAPPER ---------- */
+.sticky-wrap{
+  position:sticky;
+  top:0;
+  z-index:999;
+  background:var(--bg);
+  padding-bottom:6px;
+  box-shadow:0 2px 4px rgba(0,0,0,.05);
+}
+
+/* ---------- HEADER ---------- */
+header{text-align:center;padding-top:20px;}
+header h1{font-size:1.75rem;font-weight:700;color:var(--blue);}
+header .sub{font-size:.85rem;color:var(--muted);margin-top:4px;}
+.progress-wrap{width:100%;height:6px;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:10px;}
+.progress-bar{height:100%;width:0;background:var(--blue);transition:width .2s;}
+.progress-label{font-size:.8rem;color:var(--muted);margin-top:4px;}
+
+/* ---------- TOOLBAR ---------- */
+.toolbar{
+  display:flex;
+  gap:8px;
+  margin:12px 0 8px;
+  padding:0 10px;
+}
+.toolbar button{
+  flex:1;
+  border-radius:8px;
+  padding:11px 0;
+  border:none;
+  font-size:1rem;
+  font-weight:600;
+  cursor:pointer;
+  transition:background .2s,transform .05s;
+}
+.btn-reset{background:#e5e7eb;color:#111827;}
+.btn-reset:active{transform:scale(.97);}
+.btn-hide{background:#dc770f;color:#fff;}
+.btn-hide:active{background:#d27f1e;transform:scale(.97);}
+
+/* ---------- ADD BAR ---------- */
+.add-bar{
+  display:flex;
+  gap:8px;
+  padding:0 10px;
+  margin-bottom:6px;
+}
+.add-bar select,
+.add-bar input{
+  padding:10px 12px;
+  border:2px solid #e4e4e4;
+  border-radius:8px;
+  font-size:.85rem;
+  outline:none;
+}
+.add-bar select{
+  min-width:110px;
+  background:#fff;
+}
+.add-bar input{flex:1;}
+.add-bar select:focus,
+.add-bar input:focus{border-color:var(--blue);}
+.add-bar button{
+  padding:10px 12px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-size:1.1rem;
+}
+#micBtn{background:#2e8bf0;color:#fff;}
+#addBtn{background:var(--blue);color:#fff;}
+.auto-hint{
+  font-size:.78rem;
+  color:var(--muted);
+  padding:0 10px;
+  margin-bottom:8px;
+}
+
+/* ---------- CATEGORY BLOCKS ---------- */
+.category{
+  margin:8px 10px;
+  background:var(--card);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
+}
+.cat-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 14px;
+  background:var(--blue);
+  color:#fff;
+  cursor:pointer;
+}
+.cat-header h2{
+  font-size:.95rem;
+  font-weight:700;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.cat-header .badge{
+  background:var(--yellow);
+  color:#1f2937;
+  font-size:.7rem;
+  font-weight:800;
+  padding:2px 7px;
+  border-radius:999px;
+}
+.cat-header .arrow{
+  font-size:.8rem;
+  transition:transform .2s;
+}
+.cat-header.collapsed .arrow{transform:rotate(-90deg);}
+
+.cat-items{padding:4px 0;}
+.item{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  border-bottom:1px solid #e5e7eb;
+  cursor:pointer;
+}
+.item:last-child{border-bottom:none;}
+.item.checked .item-label{
+  text-decoration:line-through;
+  color:#9ca3af;
+}
+.item.hide-done{display:none;}
+
+.cb{
+  width:24px;
+  height:24px;
+  min-width:24px;
+  border-radius:6px;
+  border:2px solid #d1d5db;
+  position:relative;
+  transition:all .15s;
+}
+.cb::after{
+  content:"✔";
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  color:#fff;
+  font-size:.8rem;
+  font-weight:700;
+  opacity:0;
+  transition:opacity .15s;
+}
+.item.checked .cb{
+  background:var(--green);
+  border-color:var(--green);
+}
+.item.checked .cb::after{opacity:1;}
+
+.item-label{flex:1;font-size:.9rem;}
+/* ---------- EMPTY STATE ---------- */
+.empty-msg{
+  text-align:center;
+  padding:40px 0;
+  font-size:.9rem;
+  line-height:1.5;
+  color:#4b5563;
+}
+.empty-msg span{display:block;margin-top:8px;}
+
+/* ---------- TOAST ---------- */
+.toast{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#12b9b5;
+  color:#fff;
+  padding:10px 20px;
+  border-radius:8px;
+  box-shadow:0 2px 8px rgba(0,0,0,.2);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .25s;
+  z-index:200;
+  font-size:.85rem;
+}
+.toast.show{opacity:1;}
+
+/* ---------- FOOTER ---------- */
+footer{
+  font-size:.78rem;
+  color:#6b7280;
+  text-align:center;
+  margin:18px 0 30px;
+}
+
+/* ---------- MODAL ---------- */
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.45);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .2s;
+  z-index:300;
+}
+.modal-overlay.open{
+  opacity:1;
+  pointer-events:auto;
+}
+.modal-box{
+  background:#fff;
+  border-radius:12px;
+  padding:20px 18px 14px;
+  max-width:430px;
+  width:90%;
+  text-align:center;
+}
+.modal-msg{margin-bottom:14px;font-size:.95rem;}
+.modal-btns{display:flex;gap:10px;}
+.modal-btns button{
+  flex:1;
+  padding:10px;
+  border:none;
+  border-radius:8px;
+  font-size:.9rem;
+  font-weight:600;
+  cursor:pointer;
+}
+.modal-cancel{background:#e5e7eb;color:#374151;}
+.modal-confirm{background:#dc2626;color:#fff;}
+</style>
+</head>
+
+<body>
+
+<!-- ---------- MODAL ---------- -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-msg" id="modalMsg"></div>
+    <div class="modal-btns">
+      <button class="modal-cancel" id="buttonModalCancel">Cancel</button>
+      <button class="modal-confirm" id="buttonModalConfirm">Remove</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- STICKY HEADER + TOOLBAR + ADD BAR ---------- -->
+<div class="sticky-wrap">
+  <header>
+    <h1>🛒 Grocery Cart</h1>
+    <div class="sub">Walmart - Sioux Falls, SD — sorted by store flow</div>
+    <div class="progress-wrap"><div class="progress-bar" id="progBar"></div></div>
+    <div class="progress-label" id="progLabel">0 / 0</div>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn-reset" onclick="resetAll()">↻ Reset All</button>
+    <button class="btn-hide" id="hideBtn" onclick="toggleHide()">Hide / Done</button>
+  </div>
+
+  <div class="add-bar">
+    <select id="catSelect"></select>
+    <input type="text" id="addInput" placeholder="Add item (auto sorts), press Enter">
+    <button id="micBtn" onclick="startDictation()" title="Voice input">🎙️</button>
+    <button id="addBtn" onclick="addItem()">➕</button>
+  </div>
+
+  <div class="auto-hint">Auto-detects category; dropdown overrides</div>
+</div>
+
+<!-- ---------- MAIN APP ---------- -->
+<div id="app"></div>
+
+<div class="toast" id="toast"></div>
+<footer>Tap a row to check. Long-press to delete. Categories follow Walmart store layout.</footer>
+
+<script>
+/* ----------------------------------------------------------
+   FULL JAVASCRIPT LOGIC (Version A)
+   — Categories
+   — Keyword detection
+   — AI classification cache
+   — Add item
+   — Voice input
+   — Modal delete
+   — Progress bar
+   — Hide/show done
+   — Render engine
+   — LocalStorage persistence
+   — Service worker registration
+---------------------------------------------------------- */
+
+/* ---------- CATEGORY SETUP ---------- */
+const CATEGORIES = [
+  "Produce","Bread & Bakery","Meat & Protein","Dairy","Frozen",
+  "Pantry & Canned","Condiments & Spices","Beverages","Snacks",
+  "Household & Paper","Personal Care","Other"
+];
+
+let data = CATEGORIES.map(name => [name, [], []]);
+let hideDone = false;
+
+/* ---------- KEYWORD MAP ---------- */
+const kwIdx = {};
+function setIdx(catIdx, words){words.forEach(w=>kwIdx[w]=catIdx);}
+
+/* Produce */
+setIdx(0,[
+  "apple","apples","banana","bananas","lettuce","tomato","tomatoes","onion","onions",
+  "carrot","carrots","grapes","strawberries","blueberries","spinach","broccoli",
+  "pepper","peppers","cucumber","avocado","celery","corn","garlic","ginger",
+  "zucchini","squash","melon","watermelon","berries","berry"
+]);
+
+/* Bread & Bakery */
+setIdx(1,[
+  "bread","buns","bun","roll","rolls","tortilla","tortillas","bagel","bagels",
+  "muffin","muffins","cake","donut","doughnut","pita","naan","croissant","pastry"
+]);
+
+/* Meat & Protein */
+setIdx(2,[
+  "meat","beef","chicken","pork","turkey","sausage","bacon","ham","steak",
+  "ground beef","ground turkey","fish","shrimp","salmon","tuna","eggs","egg",
+  "deli","pepperoni","jerky","seafood"
+]);
+
+/* Dairy */
+setIdx(3,[
+  "milk","cheese","yogurt","cream","sour cream","butter","cottage cheese",
+  "half and half","whipping cream","mozzarella","cheddar","parmesan"
+]);
+
+/* Frozen */
+setIdx(4,[
+  "frozen","ice cream","popsicle","frozen pizza","frozen veggies","frozen vegetables",
+  "frozen fruit","frozen meal","frozen dinner","tater tots","waffles","frozen chicken"
+]);
+
+/* Pantry & Canned */
+setIdx(5,[
+  "pasta","spaghetti","noodle","noodles","rice","canned","broth","stock","beans",
+  "black beans","pinto beans","kidney beans","peanut butter","sauce","tomato sauce",
+  "tomato paste","cereal","flour","sugar","baking soda","baking powder","oatmeal",
+  "oats","syrup","jam","jelly","honey","ramen","mac and cheese","bouillon"
+]);
+
+/* Condiments & Spices */
+setIdx(6,[
+  "ketchup","mustard","ranch","dressing","salt","pepper","mayo","mayonnaise",
+  "hot sauce","soy sauce","bbq sauce","oil","olive oil","vegetable oil","vinegar",
+  "salsa","hummus","tahini","spice","seasoning","marinade","teriyaki"
+]);
+
+/* Beverages */
+setIdx(7,[
+  "coffee","tea","juice","soda","pop","cola","coke","pepsi","gatorade","powerade",
+  "energy drink","water","sparkling water","lemonade","milk tea"
+]);
+
+/* Snacks */
+setIdx(8,[
+  "chips","chip","pretzel","pretzels","popcorn","cracker","crackers","granola bar",
+  "granola","nuts","almonds","cashews","pistachios","candy","chocolate","cookies",
+  "cookie","jerky","trail mix","snack"
+]);
+
+/* Household & Paper */
+setIdx(9,[
+  "trash bag","trash bags","garbage bag","garbage bags","toilet paper","paper towel",
+  "paper towels","napkin","napkins","dish soap","laundry detergent","detergent",
+  "cleaner","bleach","windex","lysol","sponges","foil","ziplock","batteries"
+]);
+
+/* Personal Care */
+setIdx(10,[
+  "soap","body wash","shampoo","conditioner","lotion","razor","razors","toothpaste",
+  "floss","mouthwash","sunscreen","deodorant","tampon","tampons","pad","pads",
+  "diaper","diapers","wipes","baby wipes","q-tip","band-aid"
+]);
+/* ---------- AI CACHE ---------- */
+const aiCache = JSON.parse(localStorage.getItem("aiCache") || "{}");
+function saveAICache(){localStorage.setItem("aiCache", JSON.stringify(aiCache));}
+
+/* ---------- TOAST ---------- */
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove("show"),2000);
+}
+
+/* ---------- CATEGORY DETECTION ---------- */
+function detectCategory(itemText){
+  const text=itemText.toLowerCase().trim();
+  if(kwIdx[text] !== undefined) return kwIdx[text];
+  for(const key in kwIdx){
+    if(text.includes(key)) return kwIdx[key];
+  }
+  return null;
+}
+
+/* ---------- AI CLASSIFICATION ---------- */
+async function classifyWithAI(itemName){
+  const key=itemName.toLowerCase().trim();
+  if(aiCache[key] !== undefined) return aiCache[key];
+
+  try{
+    const response = await fetch("/api/classify",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({item:itemName})
+    });
+    if(!response.ok) return CATEGORIES.length-1;
+    const data = await response.json();
+    const cat = typeof data.category==="number" ? data.category : (CATEGORIES.length-1);
+    aiCache[key]=cat;
+    saveAICache();
+    return cat;
+  }catch(e){
+    console.error("AI classification error:",e);
+    return CATEGORIES.length-1;
+  }
+}
+
+/* ---------- SAVE / LOAD ---------- */
+function saveList(){localStorage.setItem("groceryData", JSON.stringify(data));}
+function loadList(){
+  const raw=localStorage.getItem("groceryData");
+  if(!raw) return;
+  try{
+    const parsed=JSON.parse(raw);
+    if(Array.isArray(parsed)) data=parsed;
+  }catch(e){}
+}
+
+/* ---------- PROGRESS ---------- */
+function updateProgress(){
+  const allItems = data.reduce((sum,c)=>sum + c[1].length,0);
+  const checked = data.reduce((sum,c)=>sum + c[2].filter(Boolean).length,0);
+  const bar=document.getElementById("progBar");
+  const label=document.getElementById("progLabel");
+  const pct = allItems===0 ? 0 : Math.round((checked/allItems)*100);
+  bar.style.width = pct + "%";
+  label.textContent = `${checked} / ${allItems}`;
+}
+
+/* ---------- CATEGORY SELECT ---------- */
+function buildCatSelect(){
+  const sel=document.getElementById("catSelect");
+  sel.innerHTML="";
+  const optAuto=document.createElement("option");
+  optAuto.value="auto";
+  optAuto.textContent="Auto";
+  sel.appendChild(optAuto);
+  CATEGORIES.forEach((name,idx)=>{
+    const o=document.createElement("option");
+    o.value=idx;
+    o.textContent=name;
+    sel.appendChild(o);
+  });
+}
+
+/* ---------- RENDER ---------- */
+function render(){
+  const app=document.getElementById("app");
+  app.innerHTML="";
+  const hasItems=data.some(c=>c[1].length>0);
+  if(!hasItems){
+    app.innerHTML="<div class='empty-msg'>😕<span>Your list is empty.<br>Type an item above — it auto-sorts by aisle!</span></div>";
+    buildCatSelect();
+    updateProgress();
+    return;
+  }
+
+  data.forEach((cat,catIdx)=>{
+    const [catName,items,checks]=cat;
+    if(items.length===0) return;
+
+    const catDiv=document.createElement("div");
+    catDiv.className="category";
+
+    const header=document.createElement("div");
+    header.className="cat-header";
+    header.innerHTML=`<h2>${catName} <span class="badge">${items.length}</span></h2><span class="arrow">▼</span>`;
+
+    const list=document.createElement("div");
+    list.className="cat-items";
+    items.forEach((name,i)=>{
+      const row=document.createElement("div");
+      row.className="item" + (checks[i] ? " checked" : "");
+      row.innerHTML=`<div class="cb"></div><span class="item-label">${name}</span>`;
+
+      /* ---------- CHECK / UNCHECK ---------- */
+      row.addEventListener("click",()=>{
+        checks[i]=!checks[i];
+        saveList();
+        render();
+      });
+
+      /* ---------- LONG PRESS DELETE ---------- */
+      let pressTimer;
+      row.addEventListener("touchstart",e=>{
+        pressTimer=setTimeout(()=>{
+          e.preventDefault();
+          if(navigator.vibrate) navigator.vibrate(30);
+          confirmDelete(catIdx,i,name);
+        },600);
+      },{passive:false});
+
+      ["touchend","touchmove"].forEach(ev=>
+        row.addEventListener(ev,()=>clearTimeout(pressTimer))
+      );
+
+      /* ---------- RIGHT CLICK DELETE ---------- */
+      row.addEventListener("contextmenu",e=>{
+        e.preventDefault();
+        confirmDelete(catIdx,i,name);
+      });
+
+      /* ---------- HIDE DONE ---------- */
+      if(hideDone && checks[i]) row.classList.add("hide-done");
+
+      list.appendChild(row);
+    });
+
+    /* ---------- COLLAPSE CATEGORY ---------- */
+    header.addEventListener("click",()=>{
+      header.classList.toggle("collapsed");
+      if(list.style.display==="none") list.style.display="";
+      else list.style.display="none";
+    });
+
+    catDiv.appendChild(header);
+    catDiv.appendChild(list);
+    app.appendChild(catDiv);
+  });
+
+  buildCatSelect();
+  updateProgress();
+}
+/* ---------- DELETE WITH MODAL ---------- */
+let pendingDelete = null;
+
+function confirmDelete(catIdx,itemIdx,name){
+  pendingDelete = {catIdx,itemIdx};
+  const modal=document.getElementById("modal");
+  const msg=document.getElementById("modalMsg");
+  msg.textContent = `Remove "${name}" from the list?`;
+  modal.classList.add("open");
+}
+
+document.getElementById("buttonModalCancel").onclick=function(){
+  pendingDelete=null;
+  document.getElementById("modal").classList.remove("open");
+};
+
+document.getElementById("buttonModalConfirm").onclick=function(){
+  if(pendingDelete){
+    const {catIdx,itemIdx}=pendingDelete;
+    data[catIdx][1].splice(itemIdx,1);
+    data[catIdx][2].splice(itemIdx,1);
+    saveList();
+    render();
+  }
+  pendingDelete=null;
+  document.getElementById("modal").classList.remove("open");
+};
+
+/* ---------- RESET / HIDE ---------- */
+function resetAll(){
+  if(!confirm("Clear all items?")) return;
+  data = CATEGORIES.map(name => [name, [], []]);
+  saveList();
+  render();
+}
+
+function toggleHide(){
+  hideDone = !hideDone;
+  document.getElementById("hideBtn").textContent = hideDone ? "Show All" : "Hide / Done";
+  render();
+}
+
+/* ---------- ADD ITEM (MANUAL) ---------- */
+async function addItem(){
+  const input=document.getElementById("addInput");
+  const sel=document.getElementById("catSelect");
+  const btn=document.getElementById("addBtn");
+  const val=input.value.trim();
+  if(!val) return;
+
+  let catIdx;
+
+  if(sel.value==="auto"){
+    let detected = detectCategory(val);
+
+    if(detected===null){
+      btn.textContent="…";
+      btn.disabled=true;
+      input.disabled=true;
+
+      detected = await classifyWithAI(val);
+
+      btn.textContent="➕";
+      btn.disabled=false;
+      input.disabled=false;
+      input.focus();
+    }
+
+    catIdx = detected;
+  } else {
+    catIdx = parseInt(sel.value,10);
+  }
+
+  data[catIdx][1].push(val);
+  data[catIdx][2].push(false);
+  saveList();
+  render();
+
+  sel.value="auto";
+  input.value="";
+  toast("Added to " + CATEGORIES[catIdx]);
+}
+
+/* ---------- ENTER KEY HANDLER ---------- */
+document.getElementById("addInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter") addItem();
+});
+
+/* ---------- PARSE MULTIPLE ITEMS (VOICE INPUT) ---------- */
+async function parseAndAddItems(text){
+  const rawItems = text.split(/,|\band\b|\bplus\b/gi);
+  const items = rawItems.map(i=>i.trim()).filter(i=>i.length>0);
+
+  if(items.length===0){
+    toast("No items recognized");
+    return;
+  }
+
+  toast("Recognized " + items.length + " items. Adding...");
+
+  const sel=document.getElementById("catSelect");
+  const micBtn=document.getElementById("micBtn");
+  const addBtn=document.getElementById("addBtn");
+  const input=document.getElementById("addInput");
+
+  micBtn.disabled=true;
+  addBtn.disabled=true;
+  input.disabled=true;
+
+  let addedCount=0;
+
+  for(const item of items){
+    let catIdx;
+
+    if(sel.value==="auto"){
+      let detected = detectCategory(item);
+      if(detected===null){
+        detected = await classifyWithAI(item);
+      }
+      catIdx = detected;
+    } else {
+      catIdx = parseInt(sel.value,10);
+    }
+
+    data[catIdx][1].push(item);
+    data[catIdx][2].push(false);
+    addedCount++;
+  }
+
+  saveList();
+  render();
+
+  micBtn.disabled=false;
+  addBtn.disabled=false;
+  input.disabled=false;
+
+  toast("Added " + addedCount + " items.");
+}
+/* ---------- SPEECH RECOGNITION ---------- */
+function startDictation(){
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+  if(!SpeechRecognition){
+    toast("Voice input not supported in this browser");
+    return;
+  }
+
+  const recognition = new SpeechRecognition();
+  recognition.lang="en-US";
+  recognition.interimResults=false;
+  recognition.maxAlternatives=1;
+
+  const micBtn=document.getElementById("micBtn");
+  const originalBg=micBtn.style.background;
+
+  recognition.onstart=function(){
+    micBtn.style.background="#ffc220";
+    toast("Listening...");
+  };
+
+  recognition.onresult=function(event){
+    const transcript=event.results[0][0].transcript;
+    parseAndAddItems(transcript);
+  };
+
+  recognition.onerror=function(event){
+    console.error("Speech recognition error",event.error);
+    toast("Error: " + event.error);
+  };
+
+  recognition.onend=function(){
+    micBtn.style.background=originalBg;
+  };
+
+  recognition.start();
+}
+
+/* ---------- SERVICE WORKER ---------- */
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js")
+    .then(()=>console.log("SW registered"))
+    .catch(e=>console.log("SW error",e));
+}
+
+/* ---------- INITIAL LOAD ---------- */
+loadList();
+render();
+</script>
+
+</body>
+</html>
